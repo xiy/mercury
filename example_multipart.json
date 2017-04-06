@@ -1,0 +1,7 @@
+{
+    "from": "noreply@domain.com",
+    "to": "bob@bobby.com",
+    "subject": "Hi :)",
+    "html_body": "<h1>Hi!</h1>",
+    "text_body": "Hi!"
+}

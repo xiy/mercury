@@ -1,0 +1,28 @@
+{
+	"ImportPath": "mercury",
+	"GoVersion": "go1.8",
+	"GodepVersion": "v78",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/Sirupsen/logrus",
+			"Comment": "v0.9.0-15-g219c8cb",
+			"Rev": "219c8cb75c258c552e999735be6df753ffc7afdc"
+		},
+		{
+			"ImportPath": "github.com/domodwyer/mailyak",
+			"Comment": "v1.0.6-4-g4600417",
+			"Rev": "4600417027e61913484c02c5895274ca93ede85a"
+		},
+		{
+			"ImportPath": "github.com/streadway/amqp",
+			"Rev": "afe8eee29a74d213b1f3fb2586058157c397da60"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "7de4796419dc3b554e6dab3a119a62469569d299"
+		}
+	]
+}
