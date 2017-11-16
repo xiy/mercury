@@ -16,7 +16,7 @@ It expects a very simple JSON payload from the queue, where the email body is gz
 }
 ```
 
-## Usage
+## Usage
 
 ```
 Usage of bin/mercury:
