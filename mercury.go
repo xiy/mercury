@@ -4,22 +4,17 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
-	"mercury/email"
 	"net/smtp"
 	"net/url"
 	"os"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/domodwyer/mailyak"
 	"github.com/streadway/amqp"
 )
 
-var logger = logrus.New()
+var logger = NewCoLogLogger("mercury")
 
-// TODO: Command-line config
 // TODO: Signal traps
-// TODO:
 
 func main() {
 	amqpUrL := flag.String(
@@ -48,8 +43,13 @@ func main() {
 	mailhost, err := url.Parse(fmt.Sprintf("smtp://%s", *smtpHost))
 	failOnError(err, "Error parsing mailhost")
 
-	log.Printf("Using mailhost=%s", mailhost.Hostname())
-	yak := mailyak.New(*smtpHost, smtp.PlainAuth("", *smtpUser, *smtpPassword, mailhost.Hostname()))
+	logger.Printf("Using mailhost=%s:%s", mailhost.Hostname(), mailhost.Port())
+	logger.Printf("Using amqp=%s", *amqpUrL)
+
+	yak := mailyak.New(
+		*smtpHost,
+		smtp.PlainAuth("", *smtpUser, *smtpPassword, mailhost.Hostname()),
+	)
 
 	// pull message details from rabbit
 	conn, err := amqp.Dial(*amqpUrL)
@@ -73,7 +73,7 @@ func main() {
 	emails, err := channel.Consume(
 		q.Name,    // queue
 		"Mercury", // consumer
-		true,      // auto-ack
+		false,     // auto-ack
 		false,     // exclusive
 		false,     // no-local
 		false,     // no-wait
@@ -82,25 +82,35 @@ func main() {
 	failOnError(err, "Failed to register a consumer")
 
 	forever := make(chan bool)
-
 	go func() {
 		for d := range emails {
-			e := email.Email{}
+			go func(d *amqp.Delivery) {
+				e := Email{}
 
-			err := json.Unmarshal(d.Body, &e)
-			failOnError(err, "Error decoding JSON payload for Email. Check payload!")
+				if err := json.Unmarshal(d.Body, &e); err != nil {
+					logger.Println("Error decoding JSON payload for Email. Check payload!")
+					return
+				}
 
-			e.Send(yak)
+				if err := e.Send(yak); err != nil {
+					logger.Printf("Failed sending email, requeing message err=%s", err)
+					return
+				}
+
+				// Send ACK to remove the message from the queue
+				d.Ack(false)
+				fmt.Print("*")
+			}(&d)
 		}
 	}()
 
-	log.Printf(" [*] Waiting for messages. To exit press CTRL+C")
+	logger.Printf("info: Waiting for messages. To exit press CTRL+C")
 	<-forever
 }
 
 func failOnError(err error, msg string) {
 	if err != nil {
-		log.Fatalf("%s: %s", msg, err)
+		logger.Fatalf("fatal: %s: %s", msg, err)
 		os.Exit(-1)
 	}
 }
